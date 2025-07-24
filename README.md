@@ -24,4 +24,4 @@ Clone the repo and open `index.html` in your browser:
 ```bash
 git clone https://github.com/yourusername/WhisperEngine.git
 cd WhisperEngine
-open index.html
+open WhisperingCrypt.html
