@@ -98,6 +98,7 @@
         </form>
     </div>
 
+    <script src="game-data.js"></script>
     <script>
         // --- DOM ELEMENTS ---
         const output = document.getElementById('output');
@@ -109,126 +110,6 @@
         let player = {
             currentRoom: 'entrance',
             inventory: []
-        };
-
-        const items = {
-            torch: {
-                id: 'torch',
-                name: 'Unlit Torch',
-                description: 'A simple wooden torch, wrapped in oil-soaked rags. It feels cold.',
-                takeable: true,
-                lit: false,
-            },
-            key: {
-                id: 'key',
-                name: 'Iron Key',
-                description: 'A heavy, ornate iron key. It looks ancient.',
-                takeable: true,
-            },
-            book: {
-                id: 'book',
-                name: 'Dusty Tome',
-                description: 'A large, leather-bound book covered in a thick layer of dust. The title is illegible.',
-                takeable: true,
-                content: "The inscription reads: 'Speak the word of light to banish the shadows, and the path shall be revealed.'"
-            },
-            amulet: {
-                id: 'amulet',
-                name: 'Amulet of Whispers',
-                description: 'A beautiful silver amulet that seems to hum with a faint energy. You feel a strange sense of clarity holding it.',
-                takeable: true,
-            }
-        };
-
-        const rooms = {
-            entrance: {
-                name: 'Crypt Entrance',
-                description: () => {
-                    return 'You stand at the entrance to a dark crypt, carved into the side of a windswept hill. A heavy stone door hangs slightly ajar, leading into darkness. The air is cold and smells of damp earth and decay. A discarded, unlit torch lies on the ground near your feet.';
-                },
-                exits: { north: 'antechamber' },
-                items: [items.torch]
-            },
-            antechamber: {
-                name: 'Antechamber',
-                description: () => {
-                    if (player.inventory.some(i => i.id === 'torch' && i.lit)) {
-                        return 'The flickering light of your torch illuminates a small, square room. The walls are lined with empty stone shelves. Dust motes dance in the torchlight. In the center of the room is a stone pedestal. There is a grand, iron-bound door to the north, and the entrance you came from is to the south.';
-                    } else {
-                        return 'You are in a pitch-black room. You cannot see a thing. A chilling draft blows from somewhere in the darkness. It might be a good idea to find some light.';
-                    }
-                },
-                exits: { south: 'entrance', north: 'hall' },
-                items: [],
-                locked: {
-                    north: {
-                        isLocked: true,
-                        key: 'key',
-                        message: 'The massive door is locked with a heavy iron mechanism.'
-                    }
-                }
-            },
-            hall: {
-                name: 'Hall of Echoes',
-                description: () => {
-                    return 'You enter a long, narrow hall. The walls are carved with faded reliefs of forgotten kings. Your footsteps echo unnervingly. To the west is a small, doorless chamber that looks like a study. To the east, a passage is blocked by a rockfall. The hall continues to the north.';
-                },
-                exits: { south: 'antechamber', west: 'study', north: 'shadow_chamber' },
-                items: []
-            },
-            study: {
-                name: 'Dusty Study',
-                description: () => {
-                    return 'This small chamber was clearly a study or library. Rotting shelves line the walls, and the remains of scrolls are scattered on the floor. A single, sturdy lectern stands in the corner, holding a large, dusty tome.';
-                },
-                exits: { east: 'hall' },
-                items: [items.book]
-            },
-
-            shadow_chamber: {
-                name: 'Shadow Chamber',
-                description: function() {
-                    if (this.chasmBridged) {
-                        return "A shimmering bridge of energy now spans the chasm, banishing the magical darkness. The way north to the altar is open. The inscription on the floor still glows faintly. The only way out is south or across the bridge to the north.";
-                    } else {
-                        return "You arrive in a circular chamber. In the center, a deep chasm is filled with an unnatural, magical darkness that seems to absorb the light from your torch. On the far side of the chasm, you can just make out a pedestal with something glinting on it. There's an inscription on the floor in front of you. The only way out is south.";
-                    }
-                },
-                exits: { south: 'hall' },
-                items: [
-                    {
-                        name: "Inscription",
-                        description: "The inscription reads: <em>'Speak the word of light to banish the shadows, and the path shall be revealed.'</em>",
-                        takeable: false,
-                        content: "The inscription reads: <em>'Speak the word of light to banish the shadows, and the path shall be revealed.'</em>"
-                    }
-                ],
-                specialAction: (verb, noun) => {
-                    if (verb === 'say' && noun === 'light') {
-                        if (rooms.shadow_chamber.chasmBridged) {
-                            addTextToDisplay("The word echoes, but nothing else happens.");
-                            return true;
-                        }
-                        addTextToDisplay("As you speak the word 'light', the inscription on the floor glows brightly. A bridge of shimmering energy forms across the chasm! The magical darkness recedes.");
-                        rooms.shadow_chamber.exits.north = 'altar';
-                        rooms.shadow_chamber.chasmBridged = true;
-                        return true;
-                    }
-                    return false;
-                },
-                chasmBridged: false 
-            },
-            altar: {
-                name: 'Altar of the Amulet',
-                description: function() {
-                    if (this.items.length > 0) {
-                        return 'You cross the magical bridge. On a simple stone altar rests the Amulet of Whispers. It glows with a soft, inviting light. The air here feels calm and peaceful.';
-                    }
-                    return 'You stand before the now-empty stone altar. With the Amulet in your possession, you feel a sense of completion. You should probably leave the way you came.';
-                },
-                exits: { south: 'shadow_chamber' },
-                items: [items.amulet]
-            },
         };
 
         // --- GAME LOGIC ---
@@ -307,6 +188,7 @@
                 case 'inventory':
                     showInventory();
                     break;
+                case 'light': // Alias for 'use'
                 case 'use':
                     handleUse(noun);
                     break;
@@ -316,14 +198,8 @@
                 case 'help':
                     showHelp();
                     break;
-                case 'light':
-                    if (noun === 'torch') handleUse('torch');
-                    else addTextToDisplay("You can't light that.");
-                    break;
                 case 'say':
-                    if (!(currentRoom.specialAction && currentRoom.specialAction(verb, noun))) {
-                        addTextToDisplay(`You say "${noun}" out loud. Nothing happens.`);
-                    }
+                    addTextToDisplay(`You say "${noun}" out loud. Nothing happens.`);
                     break;
                 default:
                     addTextToDisplay("I don't understand that command. Try 'help'.");
@@ -351,16 +227,6 @@
                 return;
             }
 
-            // Special: look at door in antechamber
-            if (player.currentRoom === 'antechamber' && noun.includes('door')) {
-                if (rooms.antechamber.locked && rooms.antechamber.locked.north.isLocked) {
-                    addTextToDisplay("The grand, iron-bound door to the north is locked with a heavy iron mechanism.");
-                } else {
-                    addTextToDisplay("The grand, iron-bound door to the north stands open.");
-                }
-                return;
-            }
-
             // Look at item in inventory
             const itemInInventory = player.inventory.find(i => i.name.toLowerCase().includes(noun));
             if (itemInInventory) {
@@ -379,21 +245,25 @@
         }
 
         function handleTake(noun) {
+            if (!noun) {
+                addTextToDisplay("Take what?");
+                return;
+            }
             const room = rooms[player.currentRoom];
             const itemIndex = room.items.findIndex(i => i.name.toLowerCase().includes(noun));
 
             if (itemIndex !== -1) {
-                const item = room.items[itemIndex];
-                if (item.takeable) {
-                    player.inventory.push(item);
+                const itemTemplate = room.items[itemIndex];
+                if (itemTemplate.takeable) {
+                    // Create a clone of the item so we don't mutate the original template
+                    const itemCopy = { ...itemTemplate };
+                    player.inventory.push(itemCopy);
                     room.items.splice(itemIndex, 1);
-                    addTextToDisplay(`You take the ${item.name}.`);
+                    addTextToDisplay(`You take the ${itemCopy.name}.`);
                     updateInventoryDisplay();
-                    // Special case for the amulet (win condition)
-                    if (item.id === 'amulet') {
-                        addTextToDisplay("<strong class='text-yellow-300'>Congratulations! You have found the Amulet of Whispers! You feel its power coursing through you. You have won the game!</strong>");
-                        commandInput.disabled = true;
-                    }
+                    // Check for a special onTake action
+                    if (itemCopy.onTake) itemCopy.onTake();
+
                 } else {
                     addTextToDisplay("You can't take that.");
                 }
@@ -403,6 +273,10 @@
         }
         
         function handleDrop(noun) {
+            if (!noun) {
+                addTextToDisplay("Drop what?");
+                return;
+            }
             const itemIndex = player.inventory.findIndex(i => i.name.toLowerCase().includes(noun));
             if (itemIndex !== -1) {
                 const item = player.inventory[itemIndex];
@@ -416,63 +290,41 @@
         }
 
         function handleUse(noun) {
+            if (!noun) {
+                addTextToDisplay("Use what?");
+                return;
+            }
             const item = player.inventory.find(i => i.name.toLowerCase().includes(noun));
             if (!item) {
                 addTextToDisplay("You don't have that.");
                 return;
             }
 
-            // Use key on locked door
-            if (item.id === 'key') {
-                const room = rooms[player.currentRoom];
-                if (room.locked && room.locked.north && room.locked.north.isLocked && room.locked.north.key === 'key') {
-                    room.locked.north.isLocked = false;
-                    addTextToDisplay("You insert the heavy iron key into the lock. With a loud *clunk*, the mechanism turns and the door is unlocked.");
-                } else {
-                    addTextToDisplay("There's nothing to use the key on here.");
-                }
-                return;
+            // Check if the item has a specific 'onUse' action
+            if (item.onUse) {
+                item.onUse(item); // Pass the item itself to the function
+            } else {
+                addTextToDisplay(`You can't figure out how to use the ${item.name}.`);
             }
-            
-            // Light the torch
-            if (item.id === 'torch') {
-                if (item.lit) {
-                     addTextToDisplay("Your torch is already lit.");
-                } else {
-                    // In a real game, you might need a tinderbox. We'll make it easy.
-                    item.lit = true;
-                    item.name = "Lit Torch";
-                    item.description = "The torch burns with a bright, steady flame, pushing back the darkness.";
-                    addTextToDisplay("You light the torch. It flares to life, casting dancing shadows on the walls.");
-                    updateInventoryDisplay();
-                    // Re-render room if it was dark
-                    if (player.currentRoom === 'antechamber') {
-                        renderRoom();
-                    }
-                }
-                return;
-            }
-
-            addTextToDisplay(`You can't figure out how to use the ${item.name}.`);
         }
         
         function handleRead(noun) {
-
-            // Allow reading book in room
-            const itemInRoom = rooms[player.currentRoom].items.find(i => i.name.toLowerCase().includes(noun));
-            if (itemInRoom && itemInRoom.content) {
-                addTextToDisplay(itemInRoom.content);
+            if (!noun) {
+                addTextToDisplay("Read what?");
                 return;
             }
 
-            const item = player.inventory.find(i => i.name.toLowerCase().includes(noun));
-            if (item && item.content) {
-                addTextToDisplay(item.content);
-            } else if (item) {
-                addTextToDisplay("There's nothing to read on the " + item.name + ".");
-            }
-            else {
-                addTextToDisplay("You don't have that.");
+            const itemInRoom = rooms[player.currentRoom].items.find(i => i.name.toLowerCase().includes(noun));
+            const itemInInventory = player.inventory.find(i => i.name.toLowerCase().includes(noun));
+
+            const targetItem = itemInInventory || itemInRoom; // Prioritize inventory item
+
+            if (!targetItem) {
+                addTextToDisplay("You don't see that here.");
+            } else if (targetItem.content) {
+                addTextToDisplay(targetItem.content);
+            } else {
+                addTextToDisplay("There's nothing to read on the " + targetItem.name + ".");
             }
         }
 
@@ -514,28 +366,8 @@
             commandInput.value = '';
         });
         
-        // Find the key in the antechamber and place it on the pedestal
-        function setupPuzzles() {
-            const pedestalRoom = rooms.antechamber;
-            const keyItem = items.key;
-            pedestalRoom.items.push(keyItem);
-            pedestalRoom.description = () => {
-                 if (player.inventory.some(i => i.id === 'torch' && i.lit)) {
-                    let desc = 'The flickering light of your torch illuminates a small, square room. The walls are lined with empty stone shelves. Dust motes dance in the torchlight. In the center of the room is a stone pedestal. ';
-                    if(pedestalRoom.items.some(i => i.id === 'key')){
-                       desc += 'Resting on the pedestal is a heavy <strong>Iron Key</strong>. ';
-                    }
-                    desc += 'There is a grand, iron-bound door to the north, and the entrance you came from is to the south.';
-                    return desc;
-                } else {
-                    return 'You are in a pitch-black room. You cannot see a thing. A chilling draft blows from somewhere in the darkness. It might be a good idea to find some light.';
-                }
-            }
-        }
-
         function startGame() {
             output.innerHTML = '';
-            setupPuzzles();
             renderRoom();
             updateInventoryDisplay();
             commandInput.focus();
