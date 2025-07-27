@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Whispering Crypt</title>
+    <title>WhisperEngine</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
@@ -78,8 +78,8 @@
 
     <div id="game-container" class="bg-black rounded-lg overflow-hidden">
         <!-- Game Title Header -->
-        <div class="header">
-            THE WHISPERING CRYPT
+        <div id="game-title" class="header">
+            <!-- Title will be inserted by JS -->
         </div>
 
         <!-- Game Output -->
@@ -98,7 +98,7 @@
         </form>
     </div>
 
-    <script src="game-data.js"></script>
+    <script src="game-data-adventureland.js"></script>
     <script>
         // --- DOM ELEMENTS ---
         const output = document.getElementById('output');
@@ -108,7 +108,7 @@
 
         // --- GAME STATE ---
         let player = {
-            currentRoom: 'entrance',
+            currentRoom: null, // Will be set by the game data
             inventory: []
         };
 
@@ -162,12 +162,6 @@
                 return;
             }
 
-            // Check for special room actions first
-            const currentRoom = rooms[player.currentRoom];
-            if (currentRoom.specialAction && currentRoom.specialAction(verb, noun)) {
-                return; // Special action was handled
-            }
-
             switch (verb) {
                 case 'go':
                 case 'move':
@@ -180,6 +174,9 @@
                 case 'take':
                 case 'get':
                     handleTake(noun);
+                    break;
+                case 'give':
+                    handleGive(noun);
                     break;
                 case 'drop':
                     handleDrop(noun);
@@ -198,15 +195,16 @@
                 case 'help':
                     showHelp();
                     break;
-                case 'say':
-                    addTextToDisplay(`You say "${noun}" out loud. Nothing happens.`);
-                    break;
                 default:
-                    addTextToDisplay("I don't understand that command. Try 'help'.");
+                    handleRoomAction(verb, noun);
             }
         }
 
         function handleGo(direction) {
+            const currentRoom = rooms[player.currentRoom];
+            if (currentRoom.specialAction && currentRoom.specialAction('go', direction)) {
+                return; // The room's special action handled the move (e.g., troll blocking).
+            }
             const room = rooms[player.currentRoom];
             if (room.exits[direction]) {
                 // Check if the exit is locked
@@ -222,6 +220,12 @@
         }
 
         function handleLook(noun) {
+            const currentRoom = rooms[player.currentRoom];
+            // Let a room's special action override the default look behavior.
+            if (noun && currentRoom.specialAction && currentRoom.specialAction('look', noun)) {
+                return;
+            }
+
             if (!noun || noun === 'around' || noun === 'room') {
                 renderRoom();
                 return;
@@ -254,6 +258,12 @@
 
             if (itemIndex !== -1) {
                 const itemTemplate = room.items[itemIndex];
+
+                // New Feature: Check if the room has a special condition for taking this item.
+                if (room.canTakeItemCheck && !room.canTakeItemCheck(itemTemplate)) {
+                    return; // The custom check failed and printed its own message.
+                }
+
                 if (itemTemplate.takeable) {
                     // Create a clone of the item so we don't mutate the original template
                     const itemCopy = { ...itemTemplate };
@@ -272,6 +282,29 @@
             }
         }
         
+        function handleGive(noun) {
+            if (!noun) {
+                addTextToDisplay("Give what?");
+                return;
+            }
+
+            const itemIndex = player.inventory.findIndex(i => i.name.toLowerCase().includes(noun));
+            if (itemIndex === -1) {
+                addTextToDisplay("You don't have that to give.");
+                return;
+            }
+
+            const item = player.inventory[itemIndex];
+            const currentRoom = rooms[player.currentRoom];
+
+            // Let the room's special action handle the logic. Pass the verb, noun, and the actual item object.
+            if (currentRoom.specialAction && currentRoom.specialAction('give', noun, item)) {
+                // The special action is responsible for the outcome, including removing the item.
+            } else {
+                addTextToDisplay("Nothing happens.");
+            }
+        }
+
         function handleDrop(noun) {
             if (!noun) {
                 addTextToDisplay("Drop what?");
@@ -328,6 +361,22 @@
             }
         }
 
+        function handleRoomAction(verb, noun) {
+            const currentRoom = rooms[player.currentRoom];
+            // Let the room's special action handle the logic.
+            if (currentRoom.specialAction && currentRoom.specialAction(verb, noun)) {
+                // The special action is responsible for the outcome.
+                return;
+            }
+            // Provide default feedback if the action wasn't handled by the room
+            if (verb === 'say') {
+                addTextToDisplay(`You say "${noun}" out loud. Nothing happens.`);
+            } else if (['climb', 'jump', 'swim'].includes(verb)) { // Add other custom verbs here
+                addTextToDisplay(`You can't ${verb} here.`);
+            } else {
+                addTextToDisplay("I don't understand that command. Try 'help'.");
+            }
+        }
 
         function showInventory() {
             if (player.inventory.length === 0) {
@@ -346,6 +395,7 @@
             <strong>drop [item]</strong><br>
             <strong>use [item]</strong><br>
             <strong>read [item]</strong><br>
+            <strong>climb [object]</strong><br>
             <strong>inventory</strong> (or <strong>i</strong>)<br>
             <strong>say [word]</strong><br>
             <strong>help</strong>`);
@@ -368,6 +418,10 @@
         
         function startGame() {
             output.innerHTML = '';
+            // Set the title from the loaded game data file
+            document.title = gameTitle;
+            document.getElementById('game-title').textContent = gameTitle.toUpperCase();
+            player.currentRoom = startingRoom; // Set player's starting location from game data
             renderRoom();
             updateInventoryDisplay();
             commandInput.focus();

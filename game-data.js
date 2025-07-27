@@ -1,5 +1,7 @@
 // --- GAME DATA ---
 
+const gameTitle = "The Whispering Crypt";
+
 const items = {
     torch: {
         id: 'torch',
