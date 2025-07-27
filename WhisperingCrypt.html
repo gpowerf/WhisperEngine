@@ -195,6 +195,10 @@
                 case 'help':
                     showHelp();
                     break;
+                case 'goal':
+                case 'score':
+                    showScore();
+                    break;
                 default:
                     handleRoomAction(verb, noun);
             }
@@ -378,6 +382,24 @@
             }
         }
 
+        function showScore() {
+            // Check if the game data file has defined treasures
+            if (typeof treasures === 'undefined' || !Array.isArray(treasures)) {
+                addTextToDisplay("This adventure doesn't seem to have a score or a specific goal.");
+                return;
+            }
+
+            const foundTreasures = player.inventory.filter(i => treasures.includes(i.id)).length;
+            const totalTreasures = treasures.length;
+
+            let message = '';
+            if (typeof gameGoal !== 'undefined' && gameGoal) {
+                message += gameGoal + '<br>';
+            }
+            message += `You have found ${foundTreasures} of the ${totalTreasures} treasures.`;
+            addTextToDisplay(message);
+        }
+
         function showInventory() {
             if (player.inventory.length === 0) {
                 addTextToDisplay('You are carrying nothing.');
@@ -390,7 +412,7 @@
         function showHelp() {
             addTextToDisplay(`--- Common Commands ---<br>
             <strong>go [direction]</strong> (e.g., go north)<br>
-            <strong>look</strong> or <strong>look [object]</strong><br>
+            <strong>look</strong> or <strong>examine [object]</strong><br>
             <strong>take [item]</strong><br>
             <strong>drop [item]</strong><br>
             <strong>use [item]</strong><br>
@@ -398,6 +420,7 @@
             <strong>climb [object]</strong><br>
             <strong>inventory</strong> (or <strong>i</strong>)<br>
             <strong>say [word]</strong><br>
+            <strong>goal</strong> or <strong>score</strong><br>
             <strong>help</strong>`);
         }
 
@@ -421,6 +444,13 @@
             // Set the title from the loaded game data file
             document.title = gameTitle;
             document.getElementById('game-title').textContent = gameTitle.toUpperCase();
+
+            // Display intro text if it exists in the game data
+            if (typeof gameIntro !== 'undefined' && gameIntro) {
+                addTextToDisplay(gameIntro);
+                addTextToDisplay('---'); // Visual separator
+            }
+
             player.currentRoom = startingRoom; // Set player's starting location from game data
             renderRoom();
             updateInventoryDisplay();

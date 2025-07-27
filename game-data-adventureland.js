@@ -2,7 +2,17 @@
 // Based on Scott Adams' 1978 classic
 
 const gameTitle = "Whispering Crypt: An Adventureland Tale";
-
+ 
+const gameIntro = `
+<strong class='text-yellow-300'>Welcome to Adventureland!</strong>
+<br><br>
+Somewhere in this world are 5 treasures, lost to the ages. Your quest is to find them all and secure your place as a master adventurer. Good luck!
+<br>
+<span class='text-gray-400'>(Type 'goal' or 'score' at any time to check your progress.)</span>
+`;
+ 
+const gameGoal = "Your goal is to find all 5 treasures of Adventureland.";
+ 
 const startingRoom = "room1";
 
 const treasures = ['coins', 'statue', 'chest', 'trident', 'fruit'];
