@@ -1,7 +1,7 @@
 // Adventureland - Fully Wired Map for The Whispering Crypt Engine
 // Based on Scott Adams' 1978 classic
 
-const gameTitle = "Adventureland";
+const gameTitle = "Whispering Crypt: An Adventureland Tale";
 
 const startingRoom = "room1";
 
