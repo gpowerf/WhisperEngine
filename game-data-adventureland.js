@@ -4,10 +4,12 @@
 const gameTitle = "Whispering Crypt: An Adventureland Tale";
  
 const gameIntro = `
-<strong class='text-yellow-300'>Welcome to Adventureland!</strong>
-<br><br>
-Somewhere in this world are 5 treasures, lost to the ages. Your quest is to find them all and secure your place as a master adventurer. Good luck!
-<br>
+<strong class='text-yellow-300'>An Adventureland Tale!</strong>
+Adapted for the Whispering Crypt Engine
+Step into a reimagined version of the classic 1978 text adventure by Scott Adams. In this tale, you'll explore an enchanted world in search of thirteen lost treasures.
+Beware—this is no ordinary journey. The land is filled with wild creatures, magical beings, and perilous traps.
+Use your wits, gather items, and solve puzzles to uncover the secrets of Adventureland
+Happy adventuring... and tread carefully.<br>
 <span class='text-gray-400'>(Type 'goal' or 'score' at any time to check your progress.)</span>
 `;
  
@@ -149,17 +151,47 @@ const rooms = {
   },
   room3: {
     name: "End of Road",
-    description: () => "You’ve come to the end of a dusty road. A giant, gnarled tree with low-hanging branches stands here. It looks climbable. A path leads south.",
+    treeCut: false, // State for our puzzle
+    description: function() {
+        if (this.treeCut) {
+            return "You are at the end of a dusty road. Where a giant tree once stood, there is now only a large stump. It looks like you could climb down into it. A path leads south.";
+        } else {
+            return "You’ve come to the end of a dusty road. A giant, gnarled tree with low-hanging branches stands here. It looks climbable. A path leads south.";
+        }
+    },
     exits: { south: "room2" }, // The only way 'up' is to climb.
     items: [],
-    specialAction: (verb, noun) => {
-      if (verb === 'climb' && (noun === 'tree' || noun === 'branches')) {
-        addTextToDisplay("You easily scale the gnarled tree...");
-        player.currentRoom = 'room4';
-        renderRoom();
-        return true; // Action was handled
+    specialAction: function(verb, noun) {
+      // --- Logic for when the tree is NOT cut ---
+      if (!this.treeCut) {
+        if (verb === 'climb' && (noun === 'tree' || noun === 'branches')) {
+          addTextToDisplay("You easily scale the gnarled tree...");
+          player.currentRoom = 'room4';
+          renderRoom();
+          return true;
+        }
+        if ((verb === 'cut' || verb === 'chop') && noun.includes('tree')) {
+          const hasAxe = player.inventory.some(i => i.id === 'axe');
+          if (hasAxe) {
+            addTextToDisplay("With a few mighty swings of your axe, the tree crashes to the ground! You are left with a large, hollow stump.");
+            this.treeCut = true;
+            renderRoom(); // Re-render to show new description
+            return true;
+          } else {
+            addTextToDisplay("You'll need something sharp, like an axe, to cut down the tree.");
+            return true;
+          }
+        }
+      } 
+      // --- Logic for when the tree IS cut ---
+      else {
+        if ((verb === 'climb' || verb === 'go') && (noun.includes('stump') || noun === 'down')) {
+          addTextToDisplay("You climb down into the dark, hollow stump.");
+          player.currentRoom = 'stump_interior';
+          renderRoom();
+          return true;
+        }
       }
-      // Let the engine handle other verbs
       return false;
     }
   },
@@ -330,5 +362,12 @@ const rooms = {
     items: []
   },
   room29: { name: "Magic Garden", description: () => "Bioluminescent plants line the walls. A strange, jeweled fruit hangs from one of them.", exits: { east: "room30", west: "room28" }, items: [items.fruit] },
-  room30: { name: "Final Exit", description: () => "You stand before the final portal.", exits: { west: "room29" }, items: [] }
+  room30: { name: "Final Exit", description: () => "You stand before the final portal.", exits: { west: "room29" }, items: [] },
+  
+  stump_interior: {
+    name: "Inside the Stump",
+    description: () => "It's damp and earthy inside the hollow stump. In the dirt, you see a pile of glittering gold coins. The only way out is up.",
+    exits: { up: "room3" },
+    items: [items.coins]
+  }
 };
