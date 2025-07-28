@@ -111,6 +111,7 @@
             currentRoom: null, // Will be set by the game data
             inventory: []
         };
+        let isIntroScreen = true;
 
         // --- GAME LOGIC ---
 
@@ -443,9 +444,23 @@
             }
             commandInput.value = '';
         });
-        
+
+        function beginAdventure() {
+            isIntroScreen = false;
+            output.innerHTML = ''; // Clear the intro text
+            commandInput.disabled = false;
+
+            player.currentRoom = startingRoom; // Set player's starting location from game data
+            renderRoom();
+            updateInventoryDisplay();
+            commandInput.focus();
+        }
+
         function startGame() {
             output.innerHTML = '';
+            isIntroScreen = true;
+            commandInput.disabled = true; // Disable input during intro
+
             // Set the title from the loaded game data file
             document.title = gameTitle;
             document.getElementById('game-title').textContent = gameTitle.toUpperCase();
@@ -453,13 +468,15 @@
             // Display intro text if it exists in the game data
             if (typeof gameIntro !== 'undefined' && gameIntro) {
                 addTextToDisplay(gameIntro);
-                addTextToDisplay('---'); // Visual separator
             }
 
-            player.currentRoom = startingRoom; // Set player's starting location from game data
-            renderRoom();
-            updateInventoryDisplay();
-            commandInput.focus();
+            // Add the prompt to continue
+            addTextToDisplay("<br><p class='text-center animate-pulse'>Press any key to begin...</p>");
+            output.scrollTop = 0; // Ensure the intro text starts at the top
+
+            // Listen for the first interaction to start the game
+            document.addEventListener('keydown', beginAdventure, { once: true });
+            document.addEventListener('click', beginAdventure, { once: true });
         }
 
         // Start the game on load
