@@ -216,7 +216,12 @@
                     addTextToDisplay(room.locked[direction].message);
                     return;
                 }
-                player.currentRoom = room.exits[direction];
+                const nextRoomId = room.exits[direction];
+                player.currentRoom = nextRoomId;
+                const nextRoom = rooms[nextRoomId];
+                if (nextRoom.onEnter) {
+                    nextRoom.onEnter();
+                }
                 renderRoom();
             } else {
                 addTextToDisplay("You can't go that way.");
