@@ -2,6 +2,19 @@
 
 const gameTitle = "The Whispering Crypt";
 
+function showHelp() {
+    addTextToDisplay(`--- Whispering Crypt Commands ---<br>
+    <strong>go [direction]</strong> (e.g., go north)<br>
+    <strong>look</strong> or <strong>examine [object]</strong><br>
+    <strong>take [item]</strong><br>
+    <strong>drop [item]</strong><br>
+    <strong>use [item]</strong> (e.g., use torch, use key)<br>
+    <strong>read [item]</strong> (e.g., read book)<br>
+    <strong>inventory</strong> (or <strong>i</strong>)<br>
+    <strong>say [word]</strong> (e.g., say light)<br>
+    <strong>help</strong>`);
+}
+
 const items = {
     torch: {
         id: 'torch',

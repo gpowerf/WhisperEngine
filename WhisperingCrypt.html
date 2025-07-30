@@ -112,6 +112,8 @@
             inventory: []
         };
         let isIntroScreen = true;
+        let paginationQueue = [];
+        let isPaginating = false;
 
         // --- GAME LOGIC ---
 
@@ -119,6 +121,45 @@
             const p = document.createElement('p');
             p.innerHTML = text.replace(/\n/g, '<br>'); // Support newlines
             output.appendChild(p);
+            output.scrollTop = output.scrollHeight; // Auto-scroll
+        }
+
+        /**
+         * Displays a long string of text in chunks, waiting for user input between pages.
+         * @param {string} fullText The text to display, with page breaks marked by '---page---'.
+         */
+        function displayPaginatedText(fullText) {
+            paginationQueue = fullText.split('---page---');
+            isPaginating = true;
+            commandInput.disabled = true; // Disable command input during pagination
+            showNextPage();
+        }
+
+        function showNextPage() {
+            if (paginationQueue.length === 0) {
+                isPaginating = false;
+                commandInput.disabled = false; // Re-enable input
+                commandInput.focus();
+                return;
+            }
+
+            const pageText = paginationQueue.shift().trim();
+            addTextToDisplay(pageText);
+
+            if (paginationQueue.length > 0) {
+                addTextToDisplay("<p class='text-center text-gray-400 animate-pulse'>[Press any key for more...]</p>");
+                // Use a timeout to ensure the current keydown event from submitting the command
+                // doesn't immediately trigger the next page. A 0ms timeout defers execution
+                // until after the current event stack has cleared.
+                setTimeout(() => {
+                    document.addEventListener('keydown', showNextPage, { once: true });
+                    document.addEventListener('click', showNextPage, { once: true });
+                }, 0);
+            } else {
+                isPaginating = false;
+                commandInput.disabled = false;
+                commandInput.focus();
+            }
             output.scrollTop = output.scrollHeight; // Auto-scroll
         }
 
@@ -194,7 +235,13 @@
                     handleRead(noun);
                     break;
                 case 'help':
-                    showHelp();
+                    // Check if a game-specific help function is defined in the data file
+                    if (typeof showHelp === 'function') {
+                        showHelp();
+                    } else {
+                        // A generic fallback if no help function is provided by the game data
+                        addTextToDisplay(`--- Common Commands ---<br><strong>go [direction]</strong>, <strong>look</strong>, <strong>take [item]</strong>, <strong>drop [item]</strong>, <strong>use [item]</strong>, <strong>inventory</strong> (or <strong>i</strong>).`);
+                    }
                     break;
                 case 'goal':
                 case 'score':
@@ -415,28 +462,10 @@
             }
         }
 
-        function showHelp() {
-            addTextToDisplay(`--- Common Commands ---<br>
-            <strong>go [direction]</strong> (e.g., go north)<br>
-            <strong>look</strong> or <strong>examine [object]</strong><br>
-            <strong>take [item]</strong><br>
-            <strong>drop [item]</strong><br>
-            <strong>use [item]</strong><br>
-            <strong>read [item]</strong><br>
-            <strong>climb [object]</strong><br>
-            <strong>inventory</strong> (or <strong>i</strong>)<br>
-            <strong>say [word]</strong><br>
-            <strong>goal</strong> or <strong>score</strong><br>
-            <strong>help</strong>`);
-        }
-
-
-        
-
-
         // --- INITIALIZATION ---
         inputForm.addEventListener('submit', (e) => {
             e.preventDefault();
+            if (isPaginating) return; // Don't process commands while paginating
             const command = commandInput.value.trim();
             if (command) {
                 addTextToDisplay(`<span class="text-gray-500">&gt; ${command}</span>`);
@@ -446,6 +475,9 @@
         });
 
         function beginAdventure() {
+            // Add a guard to prevent this from running more than once
+            if (!isIntroScreen) return;
+
             isIntroScreen = false;
             output.innerHTML = ''; // Clear the intro text
             commandInput.disabled = false;

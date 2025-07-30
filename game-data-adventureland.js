@@ -5,12 +5,12 @@ const gameTitle = "Whispering Crypt: An Adventureland Tale";
  
 const gameIntro = `
 <strong class='text-yellow-300'>An Adventureland Tale!</strong>
-Adapted for the Whispering Crypt Engine
+Adapted for the Whispering Crypt Engine.
 Step into a reimagined version of the classic 1978 text adventure by Scott Adams. In this tale, you'll explore an enchanted world in search of thirteen lost treasures.
 Beware—this is no ordinary journey. The land is filled with wild creatures, magical beings, and perilous traps.
-Use your wits, gather items, and solve puzzles to uncover the secrets of Adventureland
+Use your wits, gather items, and solve puzzles to uncover the secrets of Adventureland.
 Happy adventuring... and tread carefully.<br>
-<span class='text-gray-400'>(Type 'goal' or 'score' at any time to check your progress.)</span>
+<span class='text-gray-400'>(Type 'goal' or 'score' at any time to check your progress. Or type help to find out more.)</span>
 `;
  
 const gameGoal = "Your goal is to find all 5 treasures of Adventureland.";
@@ -25,6 +25,32 @@ function checkForWin() {
         addTextToDisplay("<strong class='text-yellow-300'>Congratulations! You have collected all the treasures and won the game!</strong>");
         commandInput.disabled = true;
     }
+}
+
+function showHelp() {
+    const helpText = `This program is a tweaked and adapted version of the 1978 text adventure game Adventureland by Scott Adams!<br>
+You will find yourself in a strange new world. You will be able to look at, pick-up, and otherwise manipulate the objects you find there.<br>
+You will also be able to TRAVEL from location to location. I will be your puppet in this Adventure.<br>
+You command me with 2 word ENGLISH sentences. So if a word doesn’t work... try another!
+---page---
+--- Adventureland Commands ---<br>
+<strong>go [direction]</strong> (e.g., go north)<br>
+<strong>look</strong> or <strong>examine [object]</strong><br>
+<strong>take [item]</strong><br>
+<strong>drop [item]</strong><br>
+---page---
+<strong>use [item]</strong> (e.g., use lamp)<br>
+<strong>read [item]</strong><br>
+<strong>climb [object]</strong> (e.g., climb tree)<br>
+<strong>cut [object]</strong> (e.g., cut tree)<br>
+---page---
+<strong>inventory</strong> (or <strong>i</strong>)<br>
+<strong>say [word]</strong> (e.g., say plugh)<br>
+<strong>goal</strong> or <strong>score</strong><br>
+<strong>help</strong>`;
+
+    // Call the new pagination function from the engine
+    displayPaginatedText(helpText);
 }
 
 const items = {
