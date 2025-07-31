@@ -91,6 +91,12 @@
         </div>
         <div id="inventory-display" class="h-40"></div>
 
+        <!-- Status Display -->
+        <div id="status-header" class="header">
+            STATUS
+        </div>
+        <div id="status-display" class="h-16 p-4"></div>
+
         <!-- Input Form -->
         <form id="input-form" class="bg-black">
             <span id="prompt">&gt;</span>
@@ -103,12 +109,14 @@
         // --- DOM ELEMENTS ---
         const output = document.getElementById('output');
         const inventoryDisplay = document.getElementById('inventory-display');
+        const statusDisplay = document.getElementById('status-display');
         const inputForm = document.getElementById('input-form');
         const commandInput = document.getElementById('command-input');
 
         // --- GAME STATE ---
         let player = {
             currentRoom: null, // Will be set by the game data
+            health: 100,
             inventory: []
         };
         let isIntroScreen = true;
@@ -147,7 +155,7 @@
             addTextToDisplay(pageText);
 
             if (paginationQueue.length > 0) {
-                addTextToDisplay("<p class='text-center text-gray-400 animate-pulse'>[Press any key for more...]</p>");
+                addTextToDisplay("<p class='text-center text-gray-400 animate-pulse'>[Press any key or click for more...]</p>");
                 // Use a timeout to ensure the current keydown event from submitting the command
                 // doesn't immediately trigger the next page. A 0ms timeout defers execution
                 // until after the current event stack has cleared.
@@ -163,6 +171,10 @@
             output.scrollTop = output.scrollHeight; // Auto-scroll
         }
 
+        /**
+         * Updates the inventory display panel with the current list of items
+         * the player is carrying.
+         */
         function updateInventoryDisplay() {
             inventoryDisplay.innerHTML = '';
             if (player.inventory.length === 0) {
@@ -176,7 +188,23 @@
             }
         }
 
+        /**
+         * Updates the status display panel with the player's current health.
+         */
+        function updateStatusDisplay() {
+            // Only update if the health system is enabled for this game
+            if (typeof useHealthSystem !== 'undefined' && useHealthSystem) {
+                statusDisplay.innerHTML = `<p>Health: ${player.health}%</p>`;
+            }
+        }
+
+        /**
+         * Renders the current room's information to the main output display.
+         * This includes the name, description, visible items, and exits.
+         * It is the primary way the player sees the world.
+         */
         function renderRoom() {
+            output.innerHTML = '';
             const room = rooms[player.currentRoom];
             let html = `<h2 class="text-xl text-green-300 mb-2">${room.name}</h2>`;
             html += `<p>${room.description()}</p>`;
@@ -195,6 +223,12 @@
             addTextToDisplay(html);
         }
 
+        /**
+         * The main command parser. Takes the raw user input string, splits it into a
+         * verb and noun, and calls the appropriate sub-handler function.
+         * @param {string} command The full command string entered by the user.
+         * @returns {void}
+         */
         function handleCommand(command) {
             const parts = command.toLowerCase().split(' ').filter(p => p !== '');
             const verb = parts[0];
@@ -252,6 +286,12 @@
             }
         }
 
+        /**
+         * Handles movement commands ('go', 'move'). Checks for valid exits, locked doors,
+         * and special room actions related to movement before changing the player's room.
+         * @param {string} direction The direction the player wants to move (e.g., 'north', 'east').
+         * @returns {void}
+         */
         function handleGo(direction) {
             const currentRoom = rooms[player.currentRoom];
             if (currentRoom.specialAction && currentRoom.specialAction('go', direction)) {
@@ -276,6 +316,12 @@
             }
         }
 
+        /**
+         * Handles the 'look' or 'examine' command. Can describe the current room, an item
+         * in the player's inventory, or an item in the current room.
+         * @param {string} noun The object or area the player wants to look at. Can be empty to look at the room.
+         * @returns {void}
+         */
         function handleLook(noun) {
             const currentRoom = rooms[player.currentRoom];
             // Let a room's special action override the default look behavior.
@@ -305,6 +351,12 @@
             addTextToDisplay("You don't see that here.");
         }
 
+        /**
+         * Handles the 'take' or 'get' command. Moves an item from the current room
+         * to the player's inventory, respecting takeable flags and special room conditions.
+         * @param {string} noun The name of the item the player wants to take.
+         * @returns {void}
+         */
         function handleTake(noun) {
             if (!noun) {
                 addTextToDisplay("Take what?");
@@ -339,6 +391,12 @@
             }
         }
         
+        /**
+         * Handles the 'give' command. Finds the specified item in the player's inventory
+         * and passes it to the current room's specialAction handler to process the interaction.
+         * @param {string} noun The name of the item the player wants to give.
+         * @returns {void}
+         */
         function handleGive(noun) {
             if (!noun) {
                 addTextToDisplay("Give what?");
@@ -362,6 +420,12 @@
             }
         }
 
+        /**
+         * Handles the 'drop' command. Moves an item from the player's inventory
+         * into the current room's item list.
+         * @param {string} noun The name of the item the player wants to drop.
+         * @returns {void}
+         */
         function handleDrop(noun) {
             if (!noun) {
                 addTextToDisplay("Drop what?");
@@ -379,6 +443,12 @@
             }
         }
 
+        /**
+         * Handles the 'use' command. Finds the specified item in the player's inventory
+         * and triggers its 'onUse' method if it exists.
+         * @param {string} noun The name of the item the player wants to use.
+         * @returns {void}
+         */
         function handleUse(noun) {
             if (!noun) {
                 addTextToDisplay("Use what?");
@@ -398,6 +468,12 @@
             }
         }
         
+        /**
+         * Handles the 'read' command. Looks for an item in the room or inventory and
+         * displays its 'content' property if it exists.
+         * @param {string} noun The name of the item the player wants to read.
+         * @returns {void}
+         */
         function handleRead(noun) {
             if (!noun) {
                 addTextToDisplay("Read what?");
@@ -418,6 +494,13 @@
             }
         }
 
+        /**
+         * A catch-all handler for verbs that don't have a dedicated `handle...` function
+         * (e.g., 'climb', 'say', 'push'). It passes the action to the current room's
+         * `specialAction` handler for custom logic.
+         * @param {string} verb The action verb.
+         * @param {string} noun The target of the action.
+         */
         function handleRoomAction(verb, noun) {
             const currentRoom = rooms[player.currentRoom];
             // Let the room's special action handle the logic.
@@ -428,11 +511,41 @@
             // Provide default feedback if the action wasn't handled by the room
             if (verb === 'say') {
                 addTextToDisplay(`You say "${noun}" out loud. Nothing happens.`);
-            } else if (['climb', 'jump', 'swim'].includes(verb)) { // Add other custom verbs here
-                addTextToDisplay(`You can't ${verb} here.`);
+            } else if (['climb', 'jump', 'swim', 'cut', 'chop', 'open', 'close', 'push', 'pull'].includes(verb)) {
+                // A list of common verbs that might be tried but aren't applicable in the current context.
+                addTextToDisplay(`You can't seem to ${verb} that here.`);
             } else {
                 addTextToDisplay("I don't understand that command. Try 'help'.");
             }
+        }
+
+        /**
+         * Reduces player health by a given amount and checks for game over.
+         * @param {number} amount The amount of health to lose.
+         */
+        function takeDamage(amount) {
+            // Only take damage if the health system is enabled for this game
+            if (typeof useHealthSystem === 'undefined' || !useHealthSystem) {
+                return;
+            }
+
+            player.health -= amount;
+            if (player.health <= 0) {
+                player.health = 0;
+                updateStatusDisplay();
+                // A slight delay to let the player see the damage before the game over message
+                setTimeout(() => {
+                    endGame("You have succumbed to your injuries.");
+                }, 500);
+            } else {
+                updateStatusDisplay();
+            }
+        }
+
+        function endGame(message) {
+            addTextToDisplay(`<strong class='text-red-500'>${message}</strong>`);
+            addTextToDisplay("<strong class='text-red-500'>--- GAME OVER ---</strong>");
+            commandInput.disabled = true;
         }
 
         function showScore() {
@@ -453,6 +566,11 @@
             addTextToDisplay(message);
         }
 
+        /**
+         * Displays the player's inventory directly in the main output window
+         * in response to the 'inventory' or 'i' command.
+         * @returns {void}
+         */
         function showInventory() {
             if (player.inventory.length === 0) {
                 addTextToDisplay('You are carrying nothing.');
@@ -474,6 +592,10 @@
             commandInput.value = '';
         });
 
+        /**
+         * Transitions the game from the intro screen to the main game loop.
+         * Clears the intro text and renders the player's starting room.
+         */
         function beginAdventure() {
             // Add a guard to prevent this from running more than once
             if (!isIntroScreen) return;
@@ -485,9 +607,14 @@
             player.currentRoom = startingRoom; // Set player's starting location from game data
             renderRoom();
             updateInventoryDisplay();
+            updateStatusDisplay();
             commandInput.focus();
         }
 
+        /**
+         * Initializes the game on page load. Sets the game title, displays the
+         * intro text, and waits for the player to start the adventure.
+         */
         function startGame() {
             output.innerHTML = '';
             isIntroScreen = true;
@@ -496,6 +623,16 @@
             // Set the title from the loaded game data file
             document.title = gameTitle;
             document.getElementById('game-title').textContent = gameTitle.toUpperCase();
+
+            // Conditionally display the status section based on game data
+            const statusHeader = document.getElementById('status-header');
+            if (typeof useHealthSystem === 'undefined' || !useHealthSystem) {
+                statusHeader.style.display = 'none';
+                statusDisplay.style.display = 'none';
+            } else {
+                statusHeader.style.display = 'block';
+                statusDisplay.style.display = 'block';
+            }
 
             // Display intro text if it exists in the game data
             if (typeof gameIntro !== 'undefined' && gameIntro) {

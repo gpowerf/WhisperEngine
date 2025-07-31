@@ -2,6 +2,8 @@
 // Based on Scott Adams' 1978 classic
 
 const gameTitle = "Whispering Crypt: An Adventureland Tale";
+
+const useHealthSystem = false;
  
 const gameIntro = `
 <strong class='text-yellow-300'>An Adventureland Tale!</strong>
@@ -188,33 +190,33 @@ const rooms = {
     exits: { south: "room2" }, // The only way 'up' is to climb.
     items: [],
     specialAction: function(verb, noun) {
-      // --- Logic for when the tree is NOT cut ---
-      if (!this.treeCut) {
-        if (verb === 'climb' && (noun === 'tree' || noun === 'branches')) {
-          addTextToDisplay("You easily scale the gnarled tree...");
-          player.currentRoom = 'room4';
-          renderRoom();
-          return true;
-        }
-        if ((verb === 'cut' || verb === 'chop') && noun.includes('tree')) {
-          const hasAxe = player.inventory.some(i => i.id === 'axe');
-          if (hasAxe) {
-            addTextToDisplay("With a few mighty swings of your axe, the tree crashes to the ground! You are left with a large, hollow stump.");
-            this.treeCut = true;
-            renderRoom(); // Re-render to show new description
-            return true;
-          } else {
-            addTextToDisplay("You'll need something sharp, like an axe, to cut down the tree.");
-            return true;
-          }
-        }
-      } 
       // --- Logic for when the tree IS cut ---
-      else {
+      if (this.treeCut) {
         if ((verb === 'climb' || verb === 'go') && (noun.includes('stump') || noun === 'down')) {
           addTextToDisplay("You climb down into the dark, hollow stump.");
           player.currentRoom = 'stump_interior';
           renderRoom();
+          return true;
+        }
+        return false; // No other actions are possible when the tree is cut.
+      }
+
+      // --- Logic for when the tree is NOT cut ---
+      if (verb === 'climb' && (noun === 'tree' || noun === 'branches')) {
+        addTextToDisplay("You easily scale the gnarled tree...");
+        player.currentRoom = 'room4';
+        renderRoom();
+        return true;
+      }
+      if ((verb === 'cut' || verb === 'chop') && noun.includes('tree')) {
+        const hasAxe = player.inventory.some(i => i.id === 'axe');
+        if (hasAxe) {
+          addTextToDisplay("With a few mighty swings of your axe, the tree crashes to the ground! You are left with a large, hollow stump.");
+          this.treeCut = true;
+          renderRoom(); // Re-render to show new description
+          return true;
+        } else {
+          addTextToDisplay("You'll need something sharp, like an axe, to cut down the tree.");
           return true;
         }
       }

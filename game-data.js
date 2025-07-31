@@ -2,6 +2,8 @@
 
 const gameTitle = "The Whispering Crypt";
 
+const useHealthSystem = false; // This game doesn't use a health mechanic.
+
 function showHelp() {
     addTextToDisplay(`--- Whispering Crypt Commands ---<br>
     <strong>go [direction]</strong> (e.g., go north)<br>
