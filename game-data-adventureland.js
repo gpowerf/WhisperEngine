@@ -91,28 +91,28 @@ const items = {
     name: "Pile of Gold Coins",
     description: "Ancient gold coins from a forgotten kingdom.",
     takeable: true,
-    onTake: checkForWin,
+    isTreasure: true,
   },
   statue: {
     id: "statue",
     name: "Jeweled Statue",
     description: "A small but elaborate statue studded with rubies and emeralds.",
     takeable: true,
-    onTake: checkForWin,
+    isTreasure: true,
   },
   chest: {
     id: "chest",
     name: "Treasure Chest",
     description: "An ancient chest, its lid slightly ajar and filled with glittering gems.",
     takeable: true,
-    onTake: checkForWin,
+    isTreasure: true,
   },
   trident: {
     id: "trident",
     name: "Golden Trident",
     description: "A heavy golden trident engraved with ancient runes.",
     takeable: true,
-    onTake: checkForWin,
+    isTreasure: true,
   },
   food: {
     id: "food",
@@ -153,7 +153,7 @@ const items = {
     name: "Jeweled Fruit",
     description: "A piece of fruit made entirely of sparkling jewels. It looks delicious, but probably isn't.",
     takeable: true,
-    onTake: checkForWin,
+    isTreasure: true,
   },
   glyphs: {
     id: "glyphs",
@@ -251,8 +251,6 @@ const rooms = {
     specialAction: (verb, noun, item) => {
       if (verb === 'give' && item && item.id === 'food') {
         addTextToDisplay("You toss the food to the snake. It greedily devours it and slithers back into the shadows, revealing a path west.");
-        player.inventory = player.inventory.filter(i => i.id !== 'food');
-        updateInventoryDisplay();
         delete rooms.room7.specialAction; // Puzzle solved
         return true;
       }
@@ -300,9 +298,6 @@ const rooms = {
 
       if (verb === "give" && item && item.id === "coins") {
         addTextToDisplay("The troll snatches the coins and lets you pass.");
-        // Remove coins from inventory
-        player.inventory = player.inventory.filter(i => i.id !== 'coins');
-        updateInventoryDisplay();
         this.exits.east = "room14"; // Open the path
         this.trollSatisfied = true;
         return true;

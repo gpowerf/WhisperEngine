@@ -230,59 +230,47 @@
          * @returns {void}
          */
         function handleCommand(command) {
-            const parts = command.toLowerCase().split(' ').filter(p => p !== '');
-            const verb = parts[0];
-            const noun = parts.slice(1).join(' ');
+              const parts = command.toLowerCase().split(' ').filter(p => p !== '');
+             const verb = parts[0];
+             const noun = parts.slice(1).join(' ');
+ 
+             if (!verb) return;
+ 
+             const commandHandlers = {
+                 'go': handleGo,
+                 'move': handleGo,
+                 'look': handleLook,
+                 'examine': handleLook,
+                 'take': handleTake,
+                 'get': handleTake,
+                 'give': handleGive,
+                 'drop': handleDrop,
+                 'i': showInventory,
+                 'inventory': showInventory,
+                 'light': handleUse, // Alias for 'use'
+                 'use': handleUse,
+                 'read': handleRead,
+                 'help': showHelpHandler,
+                 'goal': showScore,
+                 'score': showScore,
+             };
+ 
+             const handler = commandHandlers[verb];
+             if (handler) {
+                 handler(noun);
+             } else {
+                 handleRoomAction(verb, noun);
+             }
+        }
 
-            if (!verb) {
-                return;
-            }
-
-            switch (verb) {
-                case 'go':
-                case 'move':
-                    handleGo(noun);
-                    break;
-                case 'look':
-                case 'examine':
-                    handleLook(noun);
-                    break;
-                case 'take':
-                case 'get':
-                    handleTake(noun);
-                    break;
-                case 'give':
-                    handleGive(noun);
-                    break;
-                case 'drop':
-                    handleDrop(noun);
-                    break;
-                case 'i':
-                case 'inventory':
-                    showInventory();
-                    break;
-                case 'light': // Alias for 'use'
-                case 'use':
-                    handleUse(noun);
-                    break;
-                case 'read':
-                    handleRead(noun);
-                    break;
-                case 'help':
-                    // Check if a game-specific help function is defined in the data file
-                    if (typeof showHelp === 'function') {
-                        showHelp();
-                    } else {
-                        // A generic fallback if no help function is provided by the game data
-                        addTextToDisplay(`--- Common Commands ---<br><strong>go [direction]</strong>, <strong>look</strong>, <strong>take [item]</strong>, <strong>drop [item]</strong>, <strong>use [item]</strong>, <strong>inventory</strong> (or <strong>i</strong>).`);
-                    }
-                    break;
-                case 'goal':
-                case 'score':
-                    showScore();
-                    break;
-                default:
-                    handleRoomAction(verb, noun);
+        /**
+         * A wrapper for the help command to provide a fallback.
+         */
+        function showHelpHandler() {
+            if (typeof showHelp === 'function') {
+                showHelp();
+            } else {
+                addTextToDisplay(`--- Common Commands ---<br><strong>go [direction]</strong>, <strong>look</strong>, <strong>take [item]</strong>, <strong>drop [item]</strong>, <strong>use [item]</strong>, <strong>inventory</strong> (or <strong>i</strong>).`);
             }
         }
 
@@ -374,14 +362,15 @@
                 }
 
                 if (itemTemplate.takeable) {
-                    // Create a clone of the item so we don't mutate the original template
-                    const itemCopy = { ...itemTemplate };
+                    // Create a deep clone of the item so we don't mutate the original template
+                    const itemCopy = JSON.parse(JSON.stringify(itemTemplate));
                     player.inventory.push(itemCopy);
                     room.items.splice(itemIndex, 1);
                     addTextToDisplay(`You take the ${itemCopy.name}.`);
                     updateInventoryDisplay();
-                    // Check for a special onTake action
-                    if (itemCopy.onTake) itemCopy.onTake();
+                    // Check for a special onTake action or if it's a treasure
+                    if (itemCopy.onTake) itemCopy.onTake(itemCopy);
+                    if (itemCopy.isTreasure) checkForWin();
 
                 } else {
                     addTextToDisplay("You can't take that.");
@@ -414,7 +403,11 @@
 
             // Let the room's special action handle the logic. Pass the verb, noun, and the actual item object.
             if (currentRoom.specialAction && currentRoom.specialAction('give', noun, item)) {
-                // The special action is responsible for the outcome, including removing the item.
+                // The action was successful. The engine is now responsible for removing the item.
+                player.inventory.splice(itemIndex, 1);
+                updateInventoryDisplay();
+                // Re-render the room in case the description changed.
+                renderRoom();
             } else {
                 addTextToDisplay("Nothing happens.");
             }
