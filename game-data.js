@@ -70,6 +70,13 @@ const items = {
             addTextToDisplay("<strong class='text-yellow-300'>Congratulations! You have found the Amulet of Whispers! You feel its power coursing through you. You have won the game!</strong>");
             commandInput.disabled = true;
         }
+    },
+    inscription: {
+        id: 'inscription',
+        name: "Inscription",
+        description: "The inscription reads: <em>'Speak the word of light to banish the shadows, and the path shall be revealed.'</em>",
+        takeable: false,
+        content: "The inscription reads: <em>'Speak the word of light to banish the shadows, and the path shall be revealed.'</em>"
     }
 };
 
@@ -145,28 +152,21 @@ const rooms = {
             }
         },
         exits: { south: 'hall' },
-        items: [
-            {
-                name: "Inscription",
-                description: "The inscription reads: <em>'Speak the word of light to banish the shadows, and the path shall be revealed.'</em>",
-                takeable: false,
-                content: "The inscription reads: <em>'Speak the word of light to banish the shadows, and the path shall be revealed.'</em>"
-            }
-        ],
-        specialAction: (verb, noun) => {
+        items: [items.inscription],
+        chasmBridged: false,
+        specialAction: function(verb, noun) { // Use `function` to get `this` context
             if (verb === 'say' && noun === 'light') {
-                if (rooms.shadow_chamber.chasmBridged) {
+                if (this.chasmBridged) {
                     addTextToDisplay("The word echoes, but nothing else happens.");
                     return true;
                 }
                 addTextToDisplay("As you speak the word 'light', the inscription on the floor glows brightly. A bridge of shimmering energy forms across the chasm! The magical darkness recedes.");
-                rooms.shadow_chamber.exits.north = 'altar';
-                rooms.shadow_chamber.chasmBridged = true;
+                this.exits.north = 'altar'; // Modify this room's exits
+                this.chasmBridged = true;   // Modify this room's state
                 return true;
             }
             return false;
-        },
-        chasmBridged: false
+        }
     },
     altar: {
         name: 'Altar of the Amulet',

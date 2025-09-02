@@ -253,6 +253,8 @@
                  'help': showHelpHandler,
                  'goal': showScore,
                  'score': showScore,
+                 'save': handleSave,
+                 'load': handleLoad,
              };
  
              const handler = commandHandlers[verb];
@@ -362,8 +364,10 @@
                 }
 
                 if (itemTemplate.takeable) {
-                    // Create a deep clone of the item so we don't mutate the original template
-                    const itemCopy = JSON.parse(JSON.stringify(itemTemplate));
+                    // Create a shallow copy of the item. This is crucial. It ensures that
+                    // methods like onUse are copied, but changes to the copy's state (e.g., a torch's `lit` status)
+                    // won't affect the original item template in the `items` object.
+                    const itemCopy = Object.assign({}, itemTemplate);
                     player.inventory.push(itemCopy);
                     room.items.splice(itemIndex, 1);
                     addTextToDisplay(`You take the ${itemCopy.name}.`);
@@ -570,6 +574,120 @@
             } else {
                 let inventoryList = 'You are carrying:<br>' + player.inventory.map(i => `- ${i.name}`).join('<br>');
                 addTextToDisplay(inventoryList);
+            }
+        }
+
+        /**
+         * Saves the current game state to the browser's local storage.
+         */
+        function handleSave() {
+            // Create a serializable representation of the game state.
+            const gameState = {
+                player: {
+                    currentRoom: player.currentRoom,
+                    health: player.health,
+                    // Save a simplified version of inventory items
+                    inventory: player.inventory.map(item => ({ id: item.id, lit: item.lit, name: item.name }))
+                },
+                // Save the state of rooms that can change.
+                rooms: Object.keys(rooms).reduce((acc, roomId) => {
+                    const room = rooms[roomId];
+                    acc[roomId] = {
+                        items: room.items.map(item => item.id),
+                        locked: room.locked,
+                        treeCut: room.treeCut,
+                        trollSatisfied: room.trollSatisfied,
+                        chasmBridged: room.chasmBridged,
+                        exits: room.exits // Also save exits in case they change
+                    };
+                    return acc;
+                }, {})
+            };
+
+            try {
+                localStorage.setItem('whisperEngineSaveData', JSON.stringify(gameState));
+                addTextToDisplay("<strong class='text-yellow-300'>Game saved.</strong>");
+            } catch (e) {
+                console.error("Error saving game:", e);
+                addTextToDisplay("<strong class='text-red-500'>There was an error saving the game.</strong>");
+            }
+        }
+
+        /**
+         * Loads the game state from the browser's local storage.
+         */
+        function handleLoad() {
+            const savedData = localStorage.getItem('whisperEngineSaveData');
+            if (!savedData) {
+                addTextToDisplay("No saved game found.");
+                return;
+            }
+
+            try {
+                const gameState = JSON.parse(savedData);
+
+                // --- Restore Player State ---
+                player.currentRoom = gameState.player.currentRoom;
+                player.health = gameState.player.health;
+
+                // --- Restore Inventory ---
+                player.inventory = []; // Clear current inventory
+                if (gameState.player.inventory) {
+                    gameState.player.inventory.forEach(savedItem => {
+                        const masterItem = Object.values(items).find(i => i.id === savedItem.id);
+                        if (masterItem) {
+                            const itemCopy = Object.assign({}, masterItem);
+                            if (savedItem.lit !== undefined) {
+                                itemCopy.lit = savedItem.lit;
+                            }
+                             if (savedItem.name !== undefined) {
+                                itemCopy.name = savedItem.name;
+                            }
+                            player.inventory.push(itemCopy);
+                        }
+                    });
+                }
+
+                // --- Restore Room States ---
+                for (const roomId in gameState.rooms) {
+                    const savedRoom = gameState.rooms[roomId];
+                    const liveRoom = rooms[roomId];
+
+                    if (liveRoom && savedRoom) {
+                        // Restore items
+                        liveRoom.items = []; // Clear current items
+                        if (savedRoom.items) {
+                            savedRoom.items.forEach(itemId => {
+                                const masterItem = Object.values(items).find(i => i.id === itemId);
+                                if (masterItem) {
+                                    liveRoom.items.push(Object.assign({}, masterItem));
+                                }
+                            });
+                        }
+                        
+                        // Restore dynamic properties
+                        if (savedRoom.locked !== undefined) liveRoom.locked = savedRoom.locked;
+                        if (savedRoom.treeCut !== undefined) liveRoom.treeCut = savedRoom.treeCut;
+                        if (savedRoom.trollSatisfied !== undefined) liveRoom.trollSatisfied = savedRoom.trollSatisfied;
+                        if (savedRoom.chasmBridged !== undefined) liveRoom.chasmBridged = savedRoom.chasmBridged;
+                        if (savedRoom.exits !== undefined) liveRoom.exits = savedRoom.exits;
+                    }
+                }
+                
+                // This is a bit of a hack to make sure the intro screen doesn't pop up again
+                isIntroScreen = false;
+                commandInput.disabled = false;
+
+                addTextToDisplay("<strong class='text-yellow-300'>Game loaded. Welcome back.</strong>");
+
+                // Refresh UI
+                renderRoom();
+                updateInventoryDisplay();
+                updateStatusDisplay();
+
+            } catch (e) {
+                console.error("Error loading game:", e);
+                addTextToDisplay("<strong class='text-red-500'>The saved game data appears to be corrupt.</strong>");
             }
         }
 
